@@ -1,0 +1,40 @@
+Code
+====
+
+Project history is maintained in `CHANGES.txt <https://sourceforge.net/p/roundup/code/ci/tip/tree/CHANGES.txt>`_
+file in code repository of Roundup, which can also be viewed online
+through SourceForge `web interface <https://sourceforge.net/p/roundup/code/>`_.
+
+Get sources
+-----------
+
+Official **read-only access** to Mercurial repository is provided through ::
+
+  hg clone http://hg.code.sf.net/p/roundup/code roundup
+
+**Read/write access** requires SSH password or SSH key
+authorization (see `SourceForge.net docs for details
+<https://sourceforge.net/p/forge/documentation/Mercurial/>`_) ::
+
+  hg clone ssh://USERNAME@hg.code.sf.net/p/roundup/code roundup
+
+You also need to be added as a Roundup developer for write access - ask
+for it on the :doc:`roundup-devel list <contact>`.
+
+Run demo
+--------
+
+Roundup doesn't need any dependencies and works out of the box. Demo
+is accessible at http://localhost:8917/demo/ by default ::
+
+  cd roundup
+  python demo.py
+
+Execute tests
+-------------
+::
+
+  python run_tests.py
+
+See repository `README.txt <https://sourceforge.net/p/roundup/code/ci/tip/tree/README.txt>`_
+for more info.

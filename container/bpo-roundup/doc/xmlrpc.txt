@@ -1,0 +1,181 @@
+=========================
+XML-RPC access to Roundup
+=========================
+
+.. contents::
+   :local:
+
+Introduction
+------------
+Version 1.4 of Roundup includes an XML-RPC frontend for remote access. The
+XML-RPC interface allows a limited subset of commands similar to those found in
+local `roundup-admin` tool.
+
+By default XML-RPC is accessible from ``/xmlrpc`` endpoint:
+
+    http://username:password@localhost:8000/xmlrpc
+
+For demo tracker the URL would be:
+
+    http://localhost:8917/demo/xmlrpc
+
+Enabling XML-RPC server 
+-----------------------
+There are two ways to run the XML-RPC interface:
+
+  stand alone roundup-xmlrpc-server
+
+  through roundup itself
+
+stand alone roundup-xmlrpc-server
+---------------------------------
+The Roundup XML-RPC standalone server must be started before remote clients can access the
+tracker via XML-RPC. ``roundup-xmlrpc-server`` is installed in the scripts
+directory alongside ``roundup-server`` and roundup-admin``. When invoked, the
+location of the tracker instance must be specified.
+
+	roundup-xmlrpc-server -i ``/path/to/tracker``
+
+The default port is ``8000``. An alternative port can be specified with the
+``--port`` switch.
+
+through roundup
+---------------
+In addition to running a stand alone server described above, the
+XML-RPC service is available from the roundup HTTP server.
+
+security consideration
+----------------------
+Note that the current ``roundup-xmlrpc-server`` implementation does not
+support SSL. This means that usernames and passwords will be passed in
+cleartext unless the server is being proxied behind another server (such as
+Apache or lighttpd) that provide SSL.
+
+
+Client API
+----------
+The server currently implements four methods. Each method requires that the
+user provide a username and password in the HTTP authorization header in order
+to authenticate the request against the tracker.
+
+======= ====================================================================
+Command Description
+======= ====================================================================
+schema
+
+        Fetch tracker schema.
+
+list    arguments: *classname, [property_name]*
+
+        List all elements of a given ``classname``. If ``property_name`` is
+        specified, that is the property that will be displayed for each
+        element. If ``property_name`` is not specified the default label
+        property will be used.
+
+display arguments: *designator, [property_1, ..., property_N]*
+
+        Display a single item in the tracker as specified by ``designator``
+        (e.g. issue20 or user5). The default is to display all properties
+        for the item. Alternatively, a list of properties to display can be
+        specified.
+
+create  arguments: *classname, arg_1 ... arg_N*
+
+        Create a new instance of ``classname`` with ``arg_1`` through
+        ``arg_N`` as the values of the new instance. The arguments are
+        name=value pairs (e.g. ``status='3'``).
+
+set     arguments: *designator, arg_1 ... arg_N*
+
+        Set the values of an existing item in the tracker as specified by
+        ``designator``. The new values are specified in ``arg_1`` through
+        ``arg_N``. The arguments are name=value pairs (e.g. ``status='3'``).
+
+lookup  arguments: *classname, key_value*
+
+        looks up the key_value for the given class. The class needs to
+        have a key and the user needs search permission on the key
+        attribute and id for the given classname.
+
+filter  arguments: *classname, list or None, attributes*
+        
+        ``list`` is a list of ids to filter. It can be set to None to run
+        filter over all values (requires ``allow_none=True`` when
+        instantiating the ServerProxy). The ``attributes`` are given as a 
+        dictionary of name value pairs to search for. See also :ref:`query-tracker`.
+======= ====================================================================
+
+sample python client
+====================
+
+This client will work if you turn off the x-requested-with header and
+the only CSRF header check you require is the HTTP host header::
+
+        >>> import xmlrpclib
+        >>> roundup_server = xmlrpclib.ServerProxy('http://admin:admin@localhost:8917/demo/xmlrpc', allow_none=True)
+        >>> roundup_server.schema()
+        {'user': [['username', '<roundup.hyperdb.String>'], ...], 'issue': [...]}
+        >>> roundup_server.list('user')
+        ['admin', 'anonymous', 'demo']
+        >>> roundup_server.list('issue', 'id')
+        ['1']
+        >>> roundup_server.display('issue1')
+        {'assignedto' : None, 'files' : [], 'title' = 'yes, ..... }
+        >>> roundup_server.display('issue1', 'priority', 'status')
+        {'priority' : '1', 'status' : '2'}
+        >>> roundup_server.set('issue1', 'status=3')
+        >>> roundup_server.display('issue1', 'status')
+        {'status' : '3' }
+        >>> roundup_server.create('issue', "title='another bug'", "status=2")
+        '2'
+        >>> roundup_server.filter('user',None,{'username':'adm'})
+        ['1']
+        >>> roundup_server.filter('user',['1','2'],{'username':'adm'})
+        ['1']
+        >>> roundup_server.filter('user',['2'],{'username':'adm'})
+        []
+        >>> roundup_server.filter('user',[],{'username':'adm'})
+        []
+        >>> roundup_server.lookup('user','admin')
+        '1'
+
+advanced python client adding anti-csrf headers
+===============================================
+
+The one below adds Referer and X-Requested-With headers so it can pass
+stronger CSRF detection methods. It also generates a fault message
+from the server and reports it. Note if you are using http rather than
+https, replace xmlrpclib.SafeTransport with xmlrpclib.Transport::
+
+    import xmlrpclib
+
+    class SpecialTransport(xmlrpclib.SafeTransport):
+
+	def send_content(self, connection, request_body):
+
+	    connection.putheader("Referer", "https://localhost/demo/")
+	    connection.putheader("Origin", "https://localhost")
+	    connection.putheader("X-Requested-With", "XMLHttpRequest")
+
+	    connection.putheader("Content-Type", "text/xml")	
+	    connection.putheader("Content-Length", str(len(request_body)))
+	    connection.endheaders()
+	    if request_body:
+		connection.send(request_body)
+
+    roundup_server = xmlrpclib.ServerProxy(
+	'https://admin:admin@localhost/demo/xmlrpc',
+	transport=SpecialTransport(),
+	verbose=False,
+	allow_none=True)
+
+    print(roundup_server.schema())
+    print(roundup_server.display('user2', 'username'))
+    print(roundup_server.display('issue1', 'status'))
+    print(roundup_server.filter('user',['1','2','3'],{'username':'demo'}))
+
+   # this will fail with a fault
+   try:
+      print(roundup_server.filter('usr',['0','2','3'],{'username':'demo'}))
+   except Exception as msg:
+      print(msg)

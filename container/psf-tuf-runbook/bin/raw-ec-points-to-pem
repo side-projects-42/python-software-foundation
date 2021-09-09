@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+
+# raw-ec-points-to-pem: A small helper script to turn raw EC points into
+# a PEM-encoded public key.
+# Only supports uncompressed points and P256/P384.
+
+import argparse
+from pathlib import Path
+
+from cryptography.hazmat.primitives.asymmetric.ec import (
+    EllipticCurvePublicKey,
+    SECP256R1,
+    SECP384R1,
+)
+
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+
+_CURVE_TYPES = {"p256": SECP256R1, "p384": SECP384R1}
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-t", "--type", type=str, required=True, choices=_CURVE_TYPES.keys()
+    )
+    parser.add_argument("input", type=Path)
+
+    args = parser.parse_args()
+
+    curve = _CURVE_TYPES[args.type]
+    pubkey = EllipticCurvePublicKey.from_encoded_point(curve(), args.input.read_bytes())
+
+    pubkey_path = args.input.with_suffix(".pem")
+    pubkey_path.write_bytes(
+        pubkey.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
+    )
+
+
+if __name__ == "__main__":
+    main()

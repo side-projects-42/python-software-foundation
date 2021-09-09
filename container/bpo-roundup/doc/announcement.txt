@@ -1,0 +1,87 @@
+I'm proud to release version 1.6.1 of Roundup which has been possible
+due to the help of several contributors.  This release is a
+bug fix release. If you are upgrading from a release earlier than
+1.6.0 it includes important security enhancements, so make sure to
+read `docs/upgrading.txt
+<http://www.roundup-tracker.org/docs/upgrading.html>`_ to bring your
+tracker up to date.
+
+Features:
+
+  - doc updates. Link rot fixed and some grammar changes.
+    'Provisional User' config example fixed. Issue tracker is
+    now https. (John Rouillard) 
+
+Fixed:
+
+  - issue2550994: avoid breakage caused by use of backports of Python 3
+    configparser module to Python 2. (Joseph Myers)
+  - issue2551023: Fix CSRF headers for use with wsgi and cgi. The
+    env variable array used - separators rather than _. Compare:
+    HTTP_X-REQUESTED-WITH to HTTP_X_REQUESTED_WITH. The last is
+    correct. Also fix roundup-server to produce the latter form. (Patch
+    by Cedric Krier, reviewed/applied John Rouillard.)
+  - issue2551035 - fix XSS issue in wsgi and cgi when handing url not
+    found/404. Reported by hannob at
+    https://github.com/python/bugs.python.org/issues/34, issue opened by
+    JulienPalard.
+  - issue2551029: Jinja2 template install error. Remove config.ini
+    from templates to make sure that roundup-admin install writes a new
+    default config.ini based on configuration.py.
+  - issue2551029: Jinja2 template install error. Handle issue with
+    template's config.ini not getting updated. Provide an alternate
+    file: config_ini.ini for required config settings that are merged
+    into the default values producing an up to date config.ini on
+    install.
+
+If you're upgrading from an older version of Roundup you *must* follow
+the "Software Upgrade" guidelines given in the maintenance documentation.
+
+Roundup requires python 2.7 or later (but not 3+) for correct operation.
+
+To give Roundup a try, just download (see below), unpack and run::
+
+    python demo.py
+
+Release info and download page:
+     https://pypi.org/project/roundup
+Source and documentation is available at the website:
+     http://roundup-tracker.org/
+Mailing lists - the place to ask questions:
+     https://sourceforge.net/p/roundup/mailman/
+
+
+About Roundup
+=============
+
+Roundup is a simple-to-use and -install issue-tracking system with
+command-line, web and e-mail interfaces. It is based on the winning design
+from Ka-Ping Yee in the Software Carpentry "Track" design competition.
+
+Note: Ping is not responsible for this project. The contact for this
+project is richard@users.sourceforge.net.
+
+Roundup manages a number of issues (with flexible properties such as
+"description", "priority", and so on) and provides the ability to:
+
+(a) submit new issues,
+(b) find and edit existing issues, and
+(c) discuss issues with other participants.
+
+The system will facilitate communication among the participants by managing
+discussions and notifying interested parties when issues are edited. One of
+the major design goals for Roundup that it be simple to get going. Roundup
+is therefore usable "out of the box" with any python 2.7+ (but not 3+)
+installation. It doesn't even need to be "installed" to be operational,
+though an install script is provided.
+
+It comes with five issue tracker templates
+
+* a classic bug/feature tracker
+* a minimal skeleton;
+* a more extensive devel tracker for bug/features etc.
+* a responsive version of the devel tracker
+* a jinja2 based template based on devel
+
+and can use any of four database back-ends (anydbm, sqlite, mysql and
+postgresql).

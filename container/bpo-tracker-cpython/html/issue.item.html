@@ -1,0 +1,390 @@
+<tal:block metal:use-macro="templates/page/macros/icing">
+<title metal:fill-slot="head_title">
+<tal:block condition="context/id" i18n:translate=""
+ >Issue <span tal:replace="context/id" i18n:name="id"
+ />: <span tal:replace="context/title" i18n:name="title"
+ /> - <span tal:replace="config/TRACKER_NAME" i18n:name="tracker"
+/></tal:block>
+<tal:block condition="not:context/id" i18n:translate=""
+ >New Issue - <span tal:replace="config/TRACKER_NAME" i18n:name="tracker"
+/></tal:block>
+</title>
+
+<metal:slot fill-slot="more-javascript">
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.15/jquery-ui.js"></script>
+<script type="text/javascript" src="@@file/issue.item.js"></script>
+<link rel="stylesheet" type="text/css"  href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/smoothness/jquery-ui.css" />
+</metal:slot>
+
+<tal:block metal:fill-slot="body_title">
+ <span tal:condition="python: not (context.id or context.is_edit_ok())"
+  tal:omit-tag="python:1" i18n:translate="">New Issue</span>
+ <span tal:condition="python: not context.id and context.is_edit_ok()"
+  tal:omit-tag="python:1" i18n:translate="">New Issue Editing</span>
+ <span tal:condition="python: context.id and not context.is_edit_ok()"
+  tal:omit-tag="python:1" i18n:translate="">Issue<tal:x
+  replace="context/id" i18n:name="id" /></span>
+ <span tal:condition="python: context.id and context.is_edit_ok()"
+  tal:omit-tag="python:1" i18n:translate="">Issue<tal:x
+  replace="context/id" i18n:name="id" /> Editing</span>
+</tal:block>
+
+<tal:block metal:fill-slot="content">
+
+<p tal:condition="python:not (context.is_view_ok()
+ or request.user.hasRole('Anonymous'))" i18n:translate="">
+ You are not allowed to view this page.</p>
+
+<p tal:condition="python:not context.is_view_ok()
+ and request.user.hasRole('Anonymous')" i18n:translate="">
+ Please login with your username and password.</p>
+
+<div tal:condition="context/is_view_ok">
+
+<form method="post" name="itemSynopsis"
+      onSubmit="return submit_once()" enctype="multipart/form-data"
+      tal:attributes="action context/designator">
+
+<fieldset><legend>classification</legend>
+<table class="form">
+<tr>
+ <th class="required" i18n:translate="">
+   <a href="http://docs.python.org/devguide/triaging.html#title"
+      target="_blank" i18n:translate="">Title</a>:</th>
+ <td colspan="3" tal:condition="context/title/is_edit_ok"
+     tal:content="structure python:context.title.field(size=60)">title</td>
+ <td colspan="3" tal:condition="not:context/title/is_edit_ok">
+  <span tal:content="structure context/title/plain"/>
+  <input type="hidden" name="title" tal:attributes="value context/title">
+ </td>
+</tr>
+
+<tr>
+ <th class="required" i18n:translate="">
+   <a href="http://docs.python.org/devguide/triaging.html#type"
+      target="_blank" i18n:translate="">Type</a>:</th>
+ <td tal:content="structure context/type/menu">type</td>
+ <th i18n:translate="">
+   <a href="http://docs.python.org/devguide/triaging.html#stage"
+      target="_blank" i18n:translate="">Stage</a>:
+ </th>
+ <td tal:content="structure context/stage/menu">stage</td>
+</tr>
+
+<tr>
+ <th i18n:translate="">
+   <a href="http://docs.python.org/devguide/triaging.html#components"
+      target="_blank" i18n:translate="">Components</a>:
+ </th>
+ <td tal:content="structure context/components/menu">components</td>
+ <th i18n:translate="">
+   <a href="http://docs.python.org/devguide/triaging.html#versions"
+      target="_blank" i18n:translate="">Versions</a>:
+ </th>
+ <td tal:content="structure context/versions/menu">versions</td>
+</tr>
+</table>
+</fieldset>
+
+<fieldset><legend>process</legend>
+<table class="form">
+<tr tal:condition="context/id">
+  <th i18n:translate="">
+    <a href="http://docs.python.org/devguide/triaging.html#status"
+       target="_blank" i18n:translate="">Status</a>:
+  </th>
+  <td tal:content="structure context/status/menu">status</td>
+  <th i18n:translate="">
+     <a href="http://docs.python.org/devguide/triaging.html#resolution"
+        target="_blank" i18n:translate="">Resolution</a>:
+  </th>
+  <td tal:content="structure context/resolution/menu">resolution</td>
+</tr>
+
+<tr tal:condition="context/id">
+ <th>
+    <a href="http://docs.python.org/devguide/triaging.html#dependencies"
+       target="_blank" i18n:translate="">Dependencies</a>:
+ </th>
+ <td>
+  <span tal:condition="context/is_edit_ok"
+        tal:replace="structure python:context.dependencies.field(showid=1,size=20)" />
+  <tal:block tal:condition="python:context.dependencies and context.is_edit_ok()">
+        <br>View:</tal:block>
+  <tal:block tal:condition="context/dependencies"
+             tal:repeat="d python:context.dependencies.sorted('creation')">
+     <a tal:content="d/id"
+        tal:attributes="href string:issue${d/id}; class string:${d/status}; title d/title;"></a>
+  </tal:block>
+ </td>
+ <th i18n:translate="">
+    <a href="http://docs.python.org/devguide/triaging.html#superseder"
+       target="_blank" i18n:translate="">Superseder</a>:
+ </th>
+ <td>
+  <span tal:replace="structure python:context.superseder.field(showid=1, size=20)" />
+ <span tal:condition="context/superseder">
+<!--   <br><span i18n:translate="">View</span>:
+     <a tal:repeat="sup context/superseder"
+        tal:content="python:sup['id'] + ', '*(not repeat['sup'].end)"
+        tal:attributes="href string:issue${sup/id}; title sup/title;"></a> -->
+   <br>View:
+     <a tal:define="s context/superseder"
+        tal:content="s/id"
+        tal:attributes="href string:issue${s/id}; class string:${s/status}; title s/title;"></a>
+  </span>
+ </td>
+ </tr>
+ <tr>
+ <th>
+   <a href="http://docs.python.org/devguide/triaging.html#assigned-to"
+      target="_blank" i18n:translate="">Assigned To</a>:
+ </th>
+ <td tal:condition="context/assignee/is_edit_ok">
+  <select name="assignee">
+   <option value="-1">nobody</option>
+   <option tal:attributes="value request/user/id;
+                           selected python:request.user.id == context.assignee._value"
+           tal:content="request/user/username">current_user</option>
+   <tal:block tal:repeat="userdata python:sorted(db._db.user.filter_sql('select id,_username from _user where _roles like \'%Developer%\''), key=lambda user:user[1].lower())">
+   <option tal:condition="python:str(userdata[0]) != request.user.id"
+           tal:attributes="value python:userdata[0];
+                           selected python:str(userdata[0]) == context.assignee._value"
+           tal:content="python:userdata[1]"></option>
+   </tal:block>
+  </select>
+ </td>
+ <td tal:condition="not:context/assignee/is_edit_ok">
+  <span tal:replace="structure context/assignee/plain" />
+ </td>
+ <th>
+   <a href="http://docs.python.org/devguide/triaging.html#nosy-list"
+      target="_blank" i18n:translate="">Nosy List</a><!--
+        <span tal:condition="context/nosy_count" tal:replace="python: ' (%d)' % context.nosy_count" /> -->:
+ </th>
+ <td>
+     <span tal:attributes="id string:nosy_list" tal:replace="structure context/nosy/field" />
+     <span id="add_remove_from_nosy" style="display: none"
+        tal:define="current_user request/user/username"
+        tal:condition="python:request.user.username != 'anonymous'"
+        tal:attributes="onclick string:change_nosy('$current_user');user current_user"
+        onclick="change_nosy(the_current_username)"></span>
+ </td>
+</tr>
+<tr>
+ <th>
+   <a href="http://docs.python.org/devguide/triaging.html#priority"
+      target="_blank" i18n:translate="">Priority</a>:
+ </th>
+ <td tal:content="structure context/priority/menu">priority</td>
+ <th>
+    <a href="http://docs.python.org/devguide/triaging.html#keywords"
+      target="_blank" i18n:translate="">Keywords</a>:
+ </th>
+ <td tal:content="structure python:context['keywords'].menu(height=5)">keywords</td>
+
+
+</tr>
+<tr tal:condition="context/is_edit_ok">
+ <th>
+   <a href="http://docs.python.org/devguide/triaging.html#generating-special-links-in-a-comment"
+      target="_blank" i18n:translate="">Comment</a>:
+ </th>
+ <td colspan="3">
+  <textarea tal:content="request/form/@note/value | default"
+            name="@note" rows="10" cols="72"></textarea>
+ </td>
+</tr>
+
+<tr tal:condition="context/is_edit_ok">
+ <th><tal:block i18n:translate="">File</tal:block>:</th>
+ <td colspan="3">
+   <input type="hidden" name="@link@files" value="file-1">
+   <input type="file" name="file-1@content" size="50">
+ </td>
+</tr>
+<tr tal:condition="context/is_edit_ok">
+ <th><tal:block i18n:translate="">File Description</tal:block>:</th>
+ <td colspan="3"><input type="text" name="file-1@description" size="50"></td>
+</tr>
+
+<tr tal:condition="context/is_edit_ok">
+ <th><a href="http://docs.python.org/devguide/triaging.html#mercurial-repository"
+      target="_blank" i18n:translate="">Remote hg repo</a>:</th>
+ <td colspan="3">
+  <input type="hidden" name="@link@hgrepos" value="hgrepo-1">
+   <input name="hgrepo-1@url" size="50">
+ </td>
+</tr>
+
+<tr tal:condition="context/is_edit_ok">
+ <th><tal:block>GitHub PR</tal:block>:</th>
+ <td colspan="3">
+  <input type="hidden" name="@link@pull_requests" value="pull_request-1">
+  <input type="text" name="pull_request-1@number" size="50">
+ </td>
+</tr>
+
+</table>
+</fieldset>
+<div tal:condition="context/is_edit_ok" id="submit_td">
+  <input type="hidden" name="@template" value="item">
+  <input type="hidden" name="@required" value="title">
+  <span tal:replace="structure context/submit">submit button</span>
+</div>
+</form>
+
+<p tal:condition="context/id" i18n:translate="">
+ Created on <strong tal:content="python:context.creation.pretty('%Y-%m-%d %H:%M')" i18n:name="creation" />
+ by <strong tal:content="context/creator" i18n:name="creator" />,
+ last changed <strong tal:content="python:context.activity.pretty('%Y-%m-%d %H:%M')" i18n:name="activity" />
+ by <strong tal:content="context/actor" i18n:name="actor" />.
+ <tal:block tal:condition="python:str(context.status) == 'closed'">
+  This issue is now <strong style="color:#00F; background-color:inherit;">closed</strong>.
+ </tal:block>
+</p>
+
+<table class="files" tal:condition="context/files">
+ <tr><th colspan="5" class="header" i18n:translate="">Files</th></tr>
+ <tr>
+  <th i18n:translate="">File name</th>
+  <th i18n:translate="">Uploaded</th>
+  <th i18n:translate="">Description</th>
+  <th i18n:translate="">Edit</th>
+ </tr>
+ <tr tal:repeat="file python:context.files.sorted('creation')">
+  <td>
+   <a tal:attributes="href file/download_url"
+      tal:content="file/name">dld link</a>
+  </td>
+  <td>
+   <span tal:content="file/creator">creator's name</span>,
+   <span tal:content="python:file.creation.pretty('%Y-%m-%d %H:%M')">creation date</span>
+  </td>
+  <td tal:content="file/description" />
+  <td><a tal:condition="file/is_edit_ok"
+          tal:attributes="href string:file${file/id}">edit</a>
+      <tal:block tal:define="rvlink python:utils.rietveldlink(request,context.id,file.id)">
+      <a tal:condition="rvlink" tal:attributes="href rvlink">review</a>
+      </tal:block>
+  </td>
+ </tr>
+</table>
+
+<table class="files" tal:condition="context/pull_requests">
+ <tr><th class="header" colspan="4">Pull Requests</th></tr>
+ <tr>
+  <th>URL</th>
+  <th>Status</th>
+  <th>Linked</th>
+  <th>Edit</th>
+ </tr>
+ <tr tal:repeat="pull_request python:context.pull_requests.sorted('creation')">
+  <td tal:content="structure python:utils.get_pr_url(pull_request)"></td>
+  <td tal:content="pull_request/status">status</td>
+  <td>
+   <span tal:content="pull_request/creator">creator's name</span>,
+   <span tal:content="python:pull_request.creation.pretty('%Y-%m-%d %H:%M')">creation date</span>
+  </td>
+  <td>
+    <a tal:condition="pull_request/is_edit_ok"
+       tal:attributes="href string:pull_request${pull_request/id}">edit</a>
+  </td>
+ </tr>
+</table>
+
+<p tal:condition="python: context.id and not request.user.contrib_form and
+                  (any(file.creator.id == request.user.id for file in context.files) or
+                   any(pr.creator.id == request.user.id for pr in context.pull_requests))"
+   id="contribform">
+    In order to accept your patches/pull requests, core developers have to verify that you
+    have signed the contributor agreement.<br>
+    If you haven't done so yet, please <a href="http://www.python.org/psf/contrib/contrib-form/">
+    fill in the contributor agreement form</a>.<br>
+    (Note that it might take a few days before your tracker profile is updated;
+     once it's done your name will have a * next to it.)</p>
+
+<table class="files" tal:condition="context/hgrepos">
+ <tr><th class="header" colspan="4">Repositories containing patches</th></tr>
+ <tr tal:repeat="hgrepo python:context.hgrepos.sorted('creation')">
+  <td>
+   <a tal:attributes="href hgrepo/url"
+      tal:content="hgrepo/url">link</a><tal:block
+        tal:condition="hgrepo/patchbranch">#<a
+        tal:attributes="href string:${hgrepo/url}/shortlog/${hgrepo/patchbranch}"
+        tal:content="hgrepo/patchbranch"/>
+   </tal:block>
+  </td>
+  <td><tal:block tal:condition="hgrepo/is_edit_ok"><a
+          tal:attributes="href string:hgrepo${hgrepo/id}">edit</a> (change branch)
+      </tal:block>
+  </td>
+  <td>
+   <form style="padding:0" method="post" tal:condition="hgrepo/is_edit_ok"
+         tal:attributes="action string:issue${context/id}">
+    <input type="hidden" name="@remove@hgrepos" tal:attributes="value hgrepo/id">
+    <input type="hidden" name="@action" value="edit">
+    <input type="submit" value="Remove">
+   </form>
+  </td>
+  <td>
+   <form style="padding:0" method="post" tal:condition="context/is_edit_ok"
+         tal:attributes="action string:issue${context/id}">
+   <input type="hidden" name="@action" value="create_patch">
+    <input type="hidden" name="@repo" tal:attributes="value hgrepo/id">
+    <input type="submit" value="Create Patch" i18n:attributes="value">
+   </form>
+ </td>
+ </tr>
+</table>
+
+<table class="messages" tal:condition="context/messages">
+ <tr><th colspan="4" class="header"
+         tal:content="python:'Messages (%d)' % context.message_count"
+         >Messages</th></tr>
+ <tal:block tal:repeat="msg python:context.messages.sorted('creation')">
+  <tr>
+    <th tal:define="mid string:msg${msg/id}">
+     <a tal:content="mid" tal:attributes="id mid;
+        href string:#$mid;"></a> - <a tal:attributes="href mid">(view)</a></th>
+   <th i18n:translate="">Author:
+       <tal:block define="author_name msg/author/realname">
+         <a tal:condition="python:msg.author.homepage and msg.author.homepage.is_view_ok()"
+            tal:attributes="href msg/author/homepage" tal:content="author_name" rel="nofollow">
+         </a><tal:x condition="python: not msg.author.homepage or not msg.author.homepage.is_view_ok()"
+                    replace="author_name" />
+       </tal:block>
+       (<a tal:condition="python:utils.is_coordinator(request)"
+           tal:attributes="href python:'user%s' % msg.author.id"
+           tal:content="msg/author"/><tal:x condition="python:not utils.is_coordinator(request)" content="msg/author"/>)
+       <span tal:condition="msg/author/contrib_form" title="Contributor form received">*</span>
+       <img tal:condition="msg/author/iscommitter" src="@@file/committer.png"
+            title="Python committer" alt="(Python committer)"/>
+       <img tal:condition="python:not msg.author.iscommitter and utils.is_triager(request, msg.author.id)"
+            src="@@file/triager.png" title="Python triager" alt="(Python triager)"/>
+   </th>
+   <th i18n:translate="">Date: <tal:x replace="python:msg.date.pretty('%Y-%m-%d %H:%M')"
+       i18n:name="date" /></th>
+  </tr>
+  <tr>
+   <td colspan="4" class="content">
+    <p class="error-message"
+       tal:condition="python:utils.sb_is_spam(msg)">
+       Message has been classified as spam.
+    </p>
+    <pre tal:condition="python:msg.content.is_view_ok()"
+         tal:content="structure msg/content/pydev_hyperlinked">content</pre>
+   </td>
+  </tr>
+ </tal:block>
+</table>
+
+<tal:block tal:condition="context/id" tal:define="history /context/history"
+           tal:content="structure python:utils.clean_count(history)" />
+
+</div>
+
+</tal:block>
+
+</tal:block>

@@ -1,0 +1,781 @@
+#!/usr/bin/python
+# Authors: Ezio Melotti, Daniel Diniz, Richard Jones and Paul Dubois
+# Requires Python 2.5 or later.
+
+"""
+Create a tracker summary report.
+
+Usage: roundup-summary2 path_to_tracker [options]
+
+Options:
+  -h, --help            show this help message and exit
+  -m MAILTO, --mail=MAILTO
+                        Send the report to the comma-separated list of
+                        addresses or print it if the list is empty.
+  -b, --brief           Show only the summary without the lists of issues.
+  --html                Send also the HTML report via mail.
+  -d 'from;to', --dates='from;to'
+                        Specify the range of dates. Examples: "-1w;" = last
+                        week, previous week = "-2w;-1w", last 15 days =
+                        "-15d;", specific interval = "from 2010-06-19 to
+                        2010-07-04". Default: "-1w;".
+
+  Advanced options:
+    -r RESOLVED, --resolved=RESOLVED
+                        Comma-delimited list of statuses that corresponds to
+                        resolved (default: resolved,done,done-cbb,closed,faq).
+    -o FILENAME, --output=FILENAME
+                        File name for output; default is stdout.
+    -e FILENAME, --errors=FILENAME
+                        File name for error output; default is stderr.
+    -a 'from;to', --audit='from;to'
+                        Print journal for all the transactions in the given
+                        date range.
+    -D, --DEBUG         Print email content without sending it if -m is used.
+    --update-stats-file=FILENAME
+                        Append tracker stats to JSON file FILENAME.
+"""
+
+# This script has a class (Report) that filters the issues and generates txt
+# and HTML reports.  The issues_map function creates a list of all the issues,
+# with all the necessary information.
+
+import sys
+import cgi
+import json
+import os.path
+import optparse
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+import roundup.date, roundup.instance
+from roundup.mailer import SMTPConnection
+
+# summary headers
+HEADER_TXT = """
+ACTIVITY SUMMARY (%(timespan)s)
+%(tracker_name)s at %(tracker_url)s
+
+To view or respond to any of the issues listed below, click on the issue.
+Do NOT respond to this message.
+
+Issues counts and deltas:
+  open   %(open)5d (%(open_delta)+3d)
+  closed %(closed)5d (%(closed_delta)+3d)
+  total  %(total)5d (%(total_delta)+3d)
+
+Open issues with patches: %(patches)-5d"""
+
+# this looks quite ugly, if you want it to look better write a CSS (or use
+# the plain text version)
+HEADER_HTML = """
+<h1>ACTIVITY SUMMARY</h1>
+<p>(%(timespan)s)</p>
+<p>%(tracker_name)s at <a href="%(tracker_url)s">%(tracker_url)s</a></p>
+
+<p>To view or respond to any of the issues listed below, click on the issue.
+Do NOT respond to this message.</p>
+
+<p>Issues stats:</p>
+<table border="1">
+  <tr><th>open</th><td>%(open)5d (%(open_new)+3d)</td></tr>
+  <tr><th>closed</th><td>%(closed)5d (%(closed_new)+3d)</td></tr>
+  <tr><th>total</th><td>%(total)5d (%(total_new)+3d)</td></tr>
+</table>
+
+<p>Open issues with patches: %(patches)-5d</p>"""
+
+
+
+def get_options_and_home():
+    """
+    Return a list of options and the instance home.
+    """
+    # list of statuses to treat as closed -- these don't have to all exist.
+    resolved_status_def = 'resolved,done,done-cbb,closed,faq'
+    # period of time for report. Uses roundup syntax for ranges.
+    default_dates = '-1w;' # last week
+    # email address of recipient of report, if any.
+    default_mailto = ''
+    parser = optparse.OptionParser(usage='Usage: %prog path_to_tracker [options]')
+    parser.add_option(
+        '-m', '--mail', dest='mailTo', default=default_mailto,
+        help='Send the report to the comma-separated list of addresses '
+             'or print it if the list is empty.')
+    parser.add_option(
+        '-b', '--brief', dest='brief', action='store_true', default=False,
+        help='Show only the summary without the lists of issues.')
+    parser.add_option(
+        '', '--html', dest='html', action='store_true', default=False,
+        help='Send also the HTML report via mail.')
+    parser.add_option(
+        '-d', '--dates', dest='dates', default=default_dates, metavar="'from;to'",
+        help='Specify the range of dates. Examples: "-1w;" = last week, '
+             'previous week = "-2w;-1w", last 15 days = "-15d;", specific '
+             'interval = "from 2010-06-19 to 2010-07-04". Default: "-1w;".')
+
+    advanced = optparse.OptionGroup(parser, 'Advanced options')
+    advanced.add_option(
+        '-r', '--resolved', dest='resolved', default=resolved_status_def,
+        help='Comma-delimited list of statuses that corresponds to resolved '
+             '(default: %default).')
+    advanced.add_option(
+        '-o', '--output', dest='output', metavar='FILENAME', default='',
+        help='File name for output; default is stdout.')
+    advanced.add_option(
+        '-e', '--errors', dest='errors', default='', metavar='FILENAME',
+        help='File name for error output; default is stderr.')
+    advanced.add_option(
+        '-a', '--audit', dest='audit', metavar="'from;to'",
+        help='Print journal for all the transactions in the given date range.')
+    advanced.add_option(
+        '-D', '--DEBUG', dest='debug', action='store_true', default=False,
+        help='Print email content without sending it if -m is used.')
+    advanced.add_option(
+        '--update-stats-file', dest='update_stats', metavar='FILENAME',
+        help='Append tracker stats to JSON file FILENAME.')
+    parser.add_option_group(advanced)
+
+    # Get the command line args:
+    (options, args) = parser.parse_args()
+    if options.output:
+        sys.stdout = open(options.output, 'w')
+    if options.errors:
+        sys.stderr = open(options.errors, 'w')
+    if len(args) != 1:
+        parser.error('Incorrect number of arguments; '
+                     'you must supply the path to a tracker home.')
+    options.dates = get_dates(options.dates)
+    options.resolved = [s.strip() for s in options.resolved.split(',')]
+    instance_home = args[0]
+    return options, instance_home
+
+
+def get_dates(dates):
+    dates = roundup.date.Range(dates, roundup.date.Date)
+    if dates.to_value is None:
+        dates.to_value = roundup.date.Date('.')
+    if dates.from_value is None:
+        dates.from_value = roundup.date.Date('1980-1-1')
+    return dates
+
+
+
+class Report(object):
+    """
+    Class that stores and filters all the issues and provides a method
+    to generate plain text or HTML reports.
+    """
+    def __init__(self, issues):
+        self.issues = issues
+        self.start_date = OPTIONS.dates.from_value
+        self.end_date = OPTIONS.dates.to_value
+        self.header_content = None
+        # create a list with the filtered issues
+        # a table will be generated for each of this lists
+        self.issues_lists = [
+            self.opened_issues(),
+            self.unreplied(),
+            self.need_review(),
+            self.most_discussed(),
+            self.closed_issues(),
+        ]
+
+
+    def make_report(self, type='txt'):
+        """
+        Return the report as a string. The report can be either in 'txt' or
+        'html' format, depending on the value of the *type* attribute.
+        """
+        if type not in ('txt', 'html'):
+            raise ValueError('The type should be either "txt" or "html".')
+        report = self.make_header(type)
+        if not OPTIONS.brief:
+            report += self.make_tables(type)
+        return report
+
+
+    def make_header(self, type):
+        """Calculate the number of open, closed and total issues and now many
+           have been created in the given period."""
+        if type == 'txt':
+            header = HEADER_TXT
+        elif type == 'html':
+            header = HEADER_HTML
+
+        # if we have already calculated the values just return the header
+        if self.header_content is not None:
+            return header % self.header_content
+
+        start_date, end_date = self.start_date, self.end_date
+        start_str = start_date.pretty(format='%F') # %F -> yyyy-mm-dd
+        end_str = end_date.pretty(format='%F')
+        # counters for current values
+        open_tot = closed_tot = all_tot = 0
+        # counters for previous values
+        open_old = closed_old = all_old = 0
+        with_patch = 0
+        patch_id = DB.keyword.lookup('patch')
+        for id, issue in self.issues.iteritems():
+            # don't include issues created after the end date
+            if issue['creation'] > end_date:
+                continue
+            all_tot += 1
+            if issue['creation'] < start_date:
+                all_old += 1
+                # check if the issue was closed at the end of the previous
+                # period
+                if in_resolved(issue['last_period_status']):
+                    closed_old += 1
+                else:
+                    open_old += 1
+            # check if the issue is closed at the end of the selected period
+            if in_resolved(issue['sel_period_status']):
+                closed_tot += 1
+            else:
+                open_tot += 1
+                # XXX check for the specified period, not the current count
+                if patch_id in issue['keyword_ids']:
+                    with_patch += 1
+        all_delta = all_tot - all_old
+        open_delta = open_tot - open_old
+        closed_delta = closed_tot - closed_old
+        assert all_delta == open_delta + closed_delta
+        # save the values in an attribute to avoid calculating it twice
+        # when both the txt and the HTML header are needed (i.e. when sending
+        # HTML mails)
+        self.header_content = dict(
+            timespan='%s - %s' % (start_str, end_str),
+            tracker_url=DB.config.TRACKER_WEB,
+            tracker_name=DB.config.TRACKER_NAME,
+            open=open_tot, open_delta=open_delta,
+            closed=closed_tot, closed_delta=closed_delta,
+            total=all_tot, total_delta=all_delta,
+            patches=with_patch,
+        )
+        return header % self.header_content
+
+
+    def make_tables(self, type):
+        """Return all the tables as a single string."""
+        return ''.join(self.make_table(t, type) for t in self.issues_lists)
+
+
+    # these methods are currently not used
+    def average_duration(self):
+        durations = [issue['duration'] for issue in self.issues.values()
+                                       if issue['status'] == 'closed']
+        return sum(durations) / len(durations)
+
+    def median_duration(self):
+        durations = sorted(issue['duration'] for issue in self.issues.values()
+                                             if issue['status'] == 'closed')
+        return durations[len(durations)//2]
+
+
+    def opened_issues(self):
+        """
+        Return a list of all the issues created or reopened during the
+        specified period.
+        """
+        title = 'Issues opened'
+        template = ('#%(id)d: %(title)s\n'
+                    '%(url)s  %(re)sopened by %(opener)s\n')
+        headers = ['ID', 'Title', 'Opener']
+        issues_list = []
+        # XXX: sort issues by date? id?
+        for id,issue in self.issues.iteritems():
+            if issue['closed'] and self._in_period(issue['closed_date']):
+                continue  # list only issues that are still open
+            reopened = ''
+            opener = issue['creator']
+            if not self._in_period(issue['creation']):
+                if (not issue['reopened_date'] or
+                    not self._in_period(issue['reopened_date'])):
+                    continue
+                else:
+                    reopened = 're'
+                    opener = issue['reopener']
+            issues_list.append({
+                'id': id,
+                'title': issue['title'][:62],
+                #'date': issue['creation'].pretty('%F'),
+                'url': issue['url'],
+                're': reopened,
+                'opener': opener
+            })
+        return dict(title=title, issues=issues_list,
+                    template=template, headers=headers)
+
+    # XXX pending issues?
+
+    def closed_issues(self):
+        """
+        Return a list of all the issues closed during the specified period
+        that are still closed.
+        """
+        title = 'Issues closed'
+        template = ('#%(id)d: %(title)s\n'
+                    '%(url)s  closed by %(closedby)s\n')
+        headers = ['ID', 'Title', 'Closed by']
+        issues_list = []
+        for id,issue in self.issues.iteritems():
+            if not issue['closed'] or not self._in_period(issue['closed_date']):
+                continue
+            issues_list.append({
+                'id': id,
+                'title': issue['title'][:62],
+                #'date': issue['closed_date'].pretty('%F'),
+                'url': issue['url'],
+                'closedby': issue['closer']
+            })
+        return dict(title=title, issues=issues_list,
+                    template=template, headers=headers)
+
+
+    def most_discussed(self):
+        """
+        Return a table of the ten most discussed issues of the specified
+        period, sorted by number of messages.
+        """
+        title = 'Top 10 most discussed issues'
+        template = ('#%(id)d: %(title)s\n'
+                    '%(url)s %(msgs)3d msgs\n')
+        headers = ['ID', 'Title', 'Msgs']
+        issues_list = []
+        def newmsg(issue): return issue['msgs_in_period']
+        for issue in sorted(self.issues.itervalues(), key=newmsg, reverse=True):
+            if in_resolved(issue['sel_period_status']) or newmsg(issue) < 3:
+                continue  # only open issues with at least 3 new msgs
+            issues_list.append({
+                'id': issue['issue_num'],
+                'title': issue['title'][:62],
+                'url': issue['url'],
+                'msgs': issue['msgs_in_period']
+            })
+            if len(issues_list) == 10:
+                break
+        return dict(title=title, issues=issues_list,
+                    template=template, headers=headers)
+
+
+    def unreplied(self):
+        """
+        Return a table that lists the issues that haven't received any
+        reply.
+        """
+        title = 'Most recent 15 issues with no replies'
+        template = ('#%(id)d: %(title)s\n'
+                    '%(url)s\n')
+        headers = ['ID', 'Title']
+        issues_list = []
+        def creation(issue): return issue['creation']
+        for issue in sorted(self.issues.itervalues(),
+                            key=creation, reverse=True):
+            # check only the end_date, otherwise older issues might get lost
+            if (issue['closed'] or issue['msgs_num'] > 1 or
+                issue['creation'] > self.end_date):
+                continue  # only open issues with no replies
+            issues_list.append({
+                'id': issue['issue_num'],
+                'title': issue['title'][:62],
+                'url': issue['url'],
+            })
+            if len(issues_list) == 15:
+                break
+        return dict(title=title, issues=issues_list,
+                    template=template, headers=headers)
+
+
+    def need_review(self):
+        """
+        Return a table that lists the issues active during the specified
+        period that need a review (i.e. they have 'patch' or 'needs review'
+        as keywords or 'patch review' as stage).
+        """
+        title = 'Most recent 15 issues waiting for review'
+        template = ('#%(id)d: %(title)s\n'
+                    '%(url)s\n')
+        headers = ['ID', 'Title']
+        issues_list = []
+        def creation(issue): return issue['creation']
+        for issue in sorted(self.issues.itervalues(),
+                            key=creation, reverse=True):
+            # it would be better to check if the 'needs review' or
+            # 'patch' keyword have been added in the last period
+            # or if the stage changed to 'patch review' instead of
+            # checking the most recent
+            if issue['closed'] or issue['creation'] > self.end_date:
+                continue
+            if ('needs review' in issue['keywords'] or
+                'patch' in issue['keywords'] or
+                issue['stage'] == 'patch review'):
+                issues_list.append({
+                    'id': issue['issue_num'],
+                    'title': issue['title'][:62],
+                    'url': issue['url'],
+                })
+            if len(issues_list) == 15:
+                break
+        return dict(title=title, issues=issues_list,
+                    template=template, headers=headers)
+
+
+    def make_table(self, data, type):
+        """
+        Create a text or HTML table depending on the settings.
+
+        *title* is the title of the table, *issues* a list of dicts that
+        contains the information about the issues, *template* is the format
+        string used to generate the entries in the text table, *headers*
+        is a list of strings used for the headers of the HTML table.
+        """
+
+        # if there are no issues skip the whole table
+        if not data['issues']:
+            return ''
+        if type == 'html':
+            return self._make_html_table(data['title'], data['issues'],
+                                         data['headers'])
+        else:
+            return self._make_text_table(data['title'], data['issues'],
+                                         data['template'])
+
+
+    def _make_text_table(self, title, issues, template):
+        """
+        Make a text table. *title* is the title of the table,
+        *issues* a lidt of dicts with the information for each issue,
+        *template* is a format string used for each entry.
+        """
+        lnum = len(issues)
+        table = [
+            title + ' (%d)' % lnum,
+            '=' * (len(title) + len(str(lnum)) + 3) + '\n'
+        ]
+        table.extend(template % issue for issue in issues)
+        return '\n\n\n' + '\n'.join(table)
+
+
+    def _make_html_table(self, title, issues, headers):
+        # seriously, HTML tables?
+        lines = [
+            '<table border="1">',
+            '  <caption style="border: 1px solid black; margin-top: 2em">%s'
+            '</caption>' % title,
+            '  <tr>%s</tr>' % ''.join('<th>%s</th>' % h for h in headers),
+        ]
+        for issue in issues:
+            lines.append('  <tr>')
+            for header in headers:
+                column = header.replace(' ', '').lower()
+                if column == 'title':
+                    # 'title' is special-cased to be turned in a link
+                    url, title = issue['url'], cgi.escape(issue['title'])
+                    lines.append('     <td><a href="%s">%s</a></td>'
+                                 % (url, title))
+                else:
+                    lines.append('     <td>%s</td>' % issue[column])
+            lines.append('  </tr>')
+        lines.append('</table>')
+        return '\n'.join(lines) + '\n\n'
+
+    def _in_period(self, date):
+        """Check that the given date is between the start and end_date"""
+        return self.start_date <= date <= self.end_date
+
+
+
+
+def in_resolved(status):
+    """Check whether the given status is in the set of 'resolved' statuses"""
+    return status in OPTIONS.resolved
+
+def get_issue(issue_id, kws_dict, stages_dict):
+    """Get issue attributes and journal from the database."""
+    attrs = DB.getnode('issue', issue_id)  # get the current attributes
+    kwds = set(attrs['keywords'])
+    if attrs.get('stage', None) is not None:
+        stage = stages_dict[attrs['stage']]
+    else:
+        stage = None
+
+    # if you need more attributes add them here
+    issue = dict(
+        issue_num = issue_id,
+        reopened = '',
+        new = False, closed = False,
+        reopener = '',
+        reopened_date = '',
+        closer = '',
+        closed_date = '',
+        msgs_num = len(attrs['messages']),
+        msgs_in_period = 0,
+        status = None,
+        real_status = sid2name(attrs['status']), # Avoid a bug in get_issue_attrs
+        last_period_status = None, # the status of the issue before start_date
+        sel_period_status = None, # the status at the end of the selected period
+        actor = None,
+        activity = None,
+        keyword_ids = kwds,
+        keywords =  ', '.join([kws_dict[id] for id in kwds if id in kws_dict]),
+        stage = stage,
+        title = attrs['title'],
+        creation = attrs['creation'],
+        creator = attrs['creator'],
+        url = DB.config.TRACKER_WEB + 'issue%d' % issue_id
+    )
+    # The journal records the OLD value of the status in the data field
+    journal = DB.issue.history(issue['issue_num'])
+
+    helper = dict(
+        issue_id = issue_id,
+        status2 = sid2name(attrs['status']),
+        status1 = sid2name(attrs['status']),
+        actor2 = attrs['actor'],
+        activity2 = attrs['activity'],
+        journal = journal
+    )
+    return issue, helper
+
+
+def get_issue_attrs(issue, helper):
+    """Calculate and set issue attributes from journal.
+
+     Return dictionaries with the issue's title, etc. Assumes issue was
+     created no later than to_value.
+    """
+    dates = OPTIONS.dates
+    def reopened(issue):
+        status1 = issue['status1'] in OPTIONS.resolved
+        status2 = issue['status2'] not in OPTIONS.resolved
+        return status1 and status2
+
+    def not_new(issue):
+        return dates.to_value > issue['creation'] <= dates.from_value
+
+    def update(issue, helper):
+        for key in ('status', 'actor', 'activity'):
+            issue[key] = issue[key] or helper[key + '2']
+    # I'm not sure all this stuff is necessary, but it seems to work...
+    # this trick catches the first time we are in the interval of interest
+    if helper['activity2'] < dates.to_value:
+        update(issue, helper)
+    status_changes = []
+    old_time = issue['creation']
+    for _, time, userid, act, data in helper['journal']:
+        in_period =  dates.to_value > time >= dates.from_value
+        if in_period:
+            update(issue, helper)
+            issue['new'] = issue['new'] or act == 'create'
+        if act == 'set':
+            if 'messages' in data and in_period:
+                # find the number of messages added/removed in the period
+                msg = data['messages'][0]
+                if msg[0] == '+':
+                    issue['msgs_in_period'] += 1
+                elif msg[0] == '-':
+                    issue['msgs_in_period'] -= 1
+            if 'status' in data:
+                helper['status1'] = sid2name(data['status'])
+                status_changes.append((old_time, helper['status1']))
+                old_time = time
+                if time < dates.to_value:
+                    # want the last reopener only
+                    if reopened(helper) and not issue['reopened']:
+                        issue['new'] = in_period and not_new(issue)
+                        issue['reopened'] = 'reopened'
+                        issue['reopener'] = userid
+                        issue['reopened_date'] = time
+                    helper['actor2'] = userid
+                    helper['activity2'] = time
+                    helper['status2'] = helper['status1']
+                if (not issue['closer'] and
+                    sid2name(data['status']) not in OPTIONS.resolved and
+                    issue['real_status'] in OPTIONS.resolved):
+                    issue['closer'] = userid
+                    issue['closed_date'] = time
+    status_changes.append((old_time, issue['real_status']))
+
+    # if the issue got created before or during the selected period
+    # set 'open' as the initial status, otherwise leave it to None
+    if issue['creation'] < dates.from_value:
+        issue['last_period_status'] = issue['sel_period_status'] = 'open'
+    elif issue['creation'] <= dates.to_value:
+        issue['sel_period_status'] = 'open'
+    # update statuses according to subsequent changes
+    for time, status in status_changes:
+        if time < dates.from_value:
+            issue['last_period_status'] = status
+        if time <= dates.to_value:
+            issue['sel_period_status'] = status
+
+    # get these set if not done before
+    update(issue, helper)
+    last_opened = issue['reopened_date'] or issue['creation']
+    issue['closed'] = in_resolved(issue['status'])
+    duration = issue['activity'] if issue['closed'] else dates.to_value
+    issue['duration'] = int((duration - last_opened).as_seconds())
+    return issue
+
+
+def format_issue_attrs(issue):
+    """Format issue fields for the reports."""
+    # XXX: this shouldn't be a separate function
+    issue['status_id'] = issue['status']
+    #issue['status'] = sid2name(issue['status'])
+    issue['actor'] = uid2name(issue['actor'])
+    issue['creator'] = uid2name(issue['creator'])
+    if issue['reopener']:
+        issue['reopener'] = uid2name(issue['reopener'])
+    if issue['closer']:
+        issue['closer'] = uid2name(issue['closer'])
+    return issue
+
+
+def issues_map():
+    """Issue data collection and formatting driver."""
+    all_issue_ids = set(DB.issue.filter(None, {}))
+    # Fetch, compute and format issue attributes
+    issue_attrs = {}
+    keywords = get_keywords_dict()
+    stages = get_stages_dict()
+    for issue_id in sorted(map(int,all_issue_ids)):
+        issue, helper = get_issue(issue_id, keywords, stages)
+        issue = get_issue_attrs(issue, helper)
+        issue_attrs[issue_id] = format_issue_attrs(issue)
+    return issue_attrs
+
+
+
+def get_keywords_dict():
+    keyword_ids = DB.keyword.getnodeids(False)
+    kws_dict = {}
+    for id in keyword_ids:
+        kws_dict[id] = DB.keyword.get(id, 'name')
+    return kws_dict
+
+def get_stages_dict():
+    # some instances (e.g. Jython) don't have a 'stage' field
+    if not hasattr(DB, 'stage'):
+        return {}
+    stages_ids = DB.stage.getnodeids(False)
+    stages_dict = {}
+    for id in stages_ids:
+        stages_dict[id] = DB.stage.get(id, 'name')
+    return stages_dict
+
+
+def sid2name(status_id, cache={None:'none'}):
+    if status_id in cache:
+        return cache[status_id]
+    name = DB.status.get(status_id, 'name')
+    cache[status_id] = name
+    return name
+
+def uid2name(user_id, cache={None:'none'}):
+    if user_id in cache:
+        return cache[user_id]
+    name = DB.user.get(user_id, 'username')
+    cache[user_id] = name
+    return name
+
+
+
+def write_audit():
+    """Print audit for the given period."""
+    issue = DB.issue
+    ids = issue.filter(None, dict(activity=OPTIONS.audit))
+    ids.sort(key=int)
+    output = []
+    for issue_id in ids:
+        journal = issue.history(issue_id)
+        for id_, time, user, act, data in journal:
+            user = '%s (%s)' % (user, uid2name(user))
+            output.append('%s %s %s %s' %  (id_, time, user, act))
+            if act == 'set':
+                for dat, val in data.items():
+                    output.append('     %s :  %s' %  (dat, val))
+    print '\n'.join(output) + '\n'
+    sys.exit(0)
+
+
+def send_report(recipient, txt_report, html_report=None):
+    """Send the email message."""
+    tracker_name = DB.config.TRACKER_NAME
+    hdrs = [('Subject', 'Summary of %s Issues' % tracker_name)]
+    # XXX: maybe this email shouldn't be hardcoded...
+    email = '%s <%s>'  % (tracker_name, 'status@bugs.python.org')
+    hdrs += [('To', recipient), ('From', email), ('Reply-To', email),
+           ('MIME-Version', '1.0'), ('X-Roundup-Name', tracker_name)]
+    # create the message, using a multipart if --html is passed
+    if html_report is not None:
+        msg = MIMEMultipart('alternative')
+    else:
+        msg = MIMEText(txt_report)
+    for name, content in hdrs:
+        msg[name] = content
+    # if it's html create the two parts
+    if OPTIONS.html:
+        msg.attach(MIMEText(txt_report, 'plain'))
+        msg.attach(MIMEText(html_report, 'html'))
+
+    if OPTIONS.debug:
+        print msg.as_string()
+    else:
+        config = DB.config
+        smtp = SMTPConnection(config)
+        smtp.sendmail(config.ADMIN_EMAIL, recipient, msg.as_string())
+
+
+def update_stats_file(stats, filename):
+    # This function will look for a JSON file in the html/ dir of the instance
+    # and append the data for the current week.  If the file doesn't exist it
+    # will create a new one.  This function won't happend the same data twice
+    # in a single day, but if this script is run on different dates it will.
+    # In order to generate an initial JSON file with historical data, use
+    # the scripts/issuestats.py script.  These data are used by the
+    # issue.stats.html page.
+    stats = dict(stats)  # make a copy
+    stats_file = os.path.join(instance_home, 'html', OPTIONS.update_stats)
+    try:
+        with open(stats_file) as fi:
+            j = json.load(fi)
+    except IOError:
+        j = dict(open=[], closed=[], total=[], timespan=[], patches=[],
+                 open_delta=[], closed_delta=[], total_delta=[])
+    timespan = stats.pop('timespan').split(' - ')
+    if timespan in j['timespan']:
+        return  # we already updated the file today
+    j['timespan'].append(timespan)
+    for k, v in stats.items():
+        if k in j:
+            j[k].append(v)
+    with open(stats_file, 'w') as fo:
+        json.dump(j, fo)
+
+
+def main():
+    """Create the report and print or send it."""
+    issue_attrs = issues_map()
+    report = Report(issue_attrs)
+    if OPTIONS.audit:
+        write_audit()
+
+    if not OPTIONS.mailTo:
+        print report.make_report('html' if OPTIONS.html else 'txt')
+    else:
+        txt_report = report.make_report('txt')
+        html_report = report.make_report('html') if OPTIONS.html else None
+        for recipient in OPTIONS.mailTo.split(','):
+            send_report(recipient, txt_report, html_report)
+
+    if OPTIONS.update_stats:
+        update_stats_file(report.header_content, OPTIONS.update_stats)
+
+
+if __name__ == '__main__':
+    OPTIONS, instance_home = get_options_and_home()
+    instance = roundup.instance.open(instance_home)
+    DB = instance.open('admin')
+    main()

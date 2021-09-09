@@ -1,0 +1,12 @@
+diff -r 0fb0ae2b1ce9 codereview/urls.py
+--- a/codereview/urls.py	Tue Oct 11 05:41:37 2011 +0200
++++ b/codereview/urls.py	Fri Oct 14 09:29:06 2011 +0200
+@@ -78,7 +78,7 @@
+     (r'^_ah/mail/(.*)', 'incoming_mail'),
+     (r'^xsrf_token$', 'xsrf_token'),
+     # patching upload.py on the fly
+-    (r'^static/upload.py$', 'customized_upload_py'),
++    (r'^dynamic/upload.py$', 'customized_upload_py'),
+     (r'^search$', 'search'),
+     )
+ 

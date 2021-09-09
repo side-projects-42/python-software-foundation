@@ -1,0 +1,89 @@
+{% extends "resources/base.html" %}
+
+{% block page_title %}Resource: {{object.title}}{% endblock page_title %}
+
+
+{% block content %}
+
+<div class="container">
+
+    <div class="row">
+
+        {% if object.get_status_display == "Accepted" or object.submitter == request.user %}
+
+            {% if object.get_status_display != "Accepted" %}
+
+                <div class="alert alert-yellow" role="alert">
+                    {% include 'text_includes/unpublished_resource_alert.html' with status=object.get_status_display %}
+                </div>
+
+            {% endif %}
+
+        <div class="col-sm-6">
+
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title python-blue">{{ object.title }}</h4>
+                    <div class="card-body">
+
+                        <p>
+                            <p><a href="{{ object.url1 }}" class="python-link" target="_blank">get the resource</a></p>
+                            {% if object.url_description1 %} <p>{{ object.url_description1 }}</p> {% endif %}
+                            {% if object.url2 %}<p>
+                            <a href="{{ object.url2 }}" class="python-link" target="_blank">get the resource</a></p> {% endif %}
+                            {% if object.url_description2 %} <p>{{ object.url_description2 }}</p> {% endif %}
+                            {% if object.url3 %}<p>
+                            <a href="{{ object.url3 }}" class="python-link" target="_blank">get the resource</a></p> {% endif %}
+                            {% if object.url_description3 %} <p>{{ object.url_description3 }}</p> {% endif %}
+                        </p>
+
+                        {% if request.user == object.submitter %}
+                            <a href="{% url 'resource_update' pk=object.pk %}">
+                                <button type="button" class="btn d-block mt-1 navbar-btn">Edit this resource</button></a>
+                        {% endif %}
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <p><b>Description</b>: {{ object.description }}</p> 
+                    <p><b>Created By</b>: {{ object.attribution }}</p>
+                
+                    <p><small>submitted by <a class="python-link"
+                                    href="{% url 'profile_detail' username=object.submitter.username %}">
+                                {{ object.submitter.username }}</a></small></p>
+                        </p>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="col-sm-6">
+
+            <div class="card">
+                <ul class="list list-spaced list-divided card-list">
+                    <li class="list-item">Type of resource: {{ object.get_resource_type_display }}</li>
+                    <li class="list-item">Audience: {{ object.get_audience_display }}</li>
+                    <li class="list-item">Devices: {{ object.get_devices_display }}</li>
+                    <li class="list-item">Requires signup? {{ object.get_requires_signup_display }}</li>
+                    <li class="list-item">Allowed use: {{ object.get_use_type_display }}</li>
+                    <li class="list-item">Python specific? {{ object.get_python_related_display }}</li>
+                    {% if object.language != None %}<li class="list-item">Language(s) of written material: {{ object.language }}</li>{% endif %}
+                </ul>
+            </div>
+        </div>
+
+    {% else %}
+
+        We're sorry, this resource is not currently available.
+
+    {% endif %}
+
+    </div>
+
+</div>
+
+
+{% endblock content %}

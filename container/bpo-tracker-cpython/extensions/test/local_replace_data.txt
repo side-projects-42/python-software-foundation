@@ -1,0 +1,322 @@
+## test data for test_local_replace.py - odd lines are plain text, even lines are linkified
+## lines starting with '##' are ignored, but they have to be in an even number
+##
+## revisions - r12345, r 12345, rev12345, rev 12345, revision12345, revision 12345
+r2222
+<a href="https://hg.python.org/lookup/r2222">r2222</a>
+ r2222
+ <a href="https://hg.python.org/lookup/r2222">r2222</a>
+ r 2222
+ <a href="https://hg.python.org/lookup/r2222">r 2222</a>
+ r. 2222
+ <a href="https://hg.python.org/lookup/r2222">r. 2222</a>
+ rev2222
+ <a href="https://hg.python.org/lookup/r2222">rev2222</a>
+ rev  2222
+ <a href="https://hg.python.org/lookup/r2222">rev  2222</a>
+ rev.  2222
+ <a href="https://hg.python.org/lookup/r2222">rev.  2222</a>
+ revision2222
+ <a href="https://hg.python.org/lookup/r2222">revision2222</a>
+ revision 2222
+ <a href="https://hg.python.org/lookup/r2222">revision 2222</a>
+wordthatendswithr 2222
+wordthatendswithr 2222
+I uploaded http://pypi.python.org/pypi/ctypesgen/0.r125
+I uploaded <a href="http://pypi.python.org/pypi/ctypesgen/0.r125">http://pypi.python.org/pypi/ctypesgen/0.r125</a>
+look at https://github.com/python/cpython/pull/12073/files#r263026496 !
+look at <a href="https://github.com/python/cpython/pull/12073/files#r263026496">https://github.com/python/cpython/pull/12073/files#r263026496</a> !
+##
+## hg revisions
+http://code.google.com/p/spyderlib/source/detail?spec=svne5d86b685619a470d593aa5f9ee360ba60779bc1&r=323c6c697f045166e384cdc15803d40eebed0a2b
+<a href="http://code.google.com/p/spyderlib/source/detail?spec=svne5d86b685619a470d593aa5f9ee360ba60779bc1&amp;r=323c6c697f045166e384cdc15803d40eebed0a2b">http://code.google.com/p/spyderlib/source/detail?spec=svne5d86b685619a470d593aa5f9ee360ba60779bc1&amp;r=323c6c697f045166e384cdc15803d40eebed0a2b</a>
+41a99a2a7198
+<a href="https://hg.python.org/lookup/41a99a2a7198">41a99a2a7198</a>
+hg41a99a2a7198
+<a href="https://hg.python.org/lookup/hg41a99a2a7198">hg41a99a2a7198</a>
+41a99a2a7198e85c21643a5f1fdb598f07f11f9d
+<a href="https://hg.python.org/lookup/41a99a2a7198e85c21643a5f1fdb598f07f11f9d">41a99a2a7198e85c21643a5f1fdb598f07f11f9d</a>
+hg41a99a2a7198e85c21643a5f1fdb598f07f11f9d
+<a href="https://hg.python.org/lookup/hg41a99a2a7198e85c21643a5f1fdb598f07f11f9d">hg41a99a2a7198e85c21643a5f1fdb598f07f11f9d</a>
+##
+## git revisions
+4581b90a75
+<a href="https://hg.python.org/lookup/4581b90a75">4581b90a75</a>
+git4581b90a75
+<a href="https://hg.python.org/lookup/git4581b90a75">git4581b90a75</a>
+4581b90a75f
+<a href="https://hg.python.org/lookup/4581b90a75f">4581b90a75f</a>
+git4581b90a75f
+<a href="https://hg.python.org/lookup/git4581b90a75f">git4581b90a75f</a>
+4581b90a75f185df5f94af476cfc7e778fd11a24
+<a href="https://hg.python.org/lookup/4581b90a75f185df5f94af476cfc7e778fd11a24">4581b90a75f185df5f94af476cfc7e778fd11a24</a>
+git4581b90a75f185df5f94af476cfc7e778fd11a24
+<a href="https://hg.python.org/lookup/git4581b90a75f185df5f94af476cfc7e778fd11a24">git4581b90a75f185df5f94af476cfc7e778fd11a24</a>
+##
+## issues - the lowest issue id on bugs.python.org is #1000, the highest is #1779871
+ #1
+ #1
+ #10
+ #10
+ #999
+ #999
+ # 999
+ # 999
+#1000
+<a class="closed" title="[closed] Mock title" href="issue1000">#1000</a>
+ #1000
+ <a class="closed" title="[closed] Mock title" href="issue1000">#1000</a>
+ # 1000
+ <a class="closed" title="[closed] Mock title" href="issue1000"># 1000</a>
+ #5555
+ <a class="pending" title="[pending] Mock title" href="issue5555">#5555</a>
+ # 5555
+ <a class="pending" title="[pending] Mock title" href="issue5555"># 5555</a>
+ #555555
+ <a class="open" title="[open] Mock title" href="issue555555">#555555</a>
+ # 555555
+ <a class="open" title="[open] Mock title" href="issue555555"># 555555</a>
+ #1999999
+ <a class="closed" title="[closed] Mock title" href="issue1999999">#1999999</a>
+ # 1999999
+ <a class="closed" title="[closed] Mock title" href="issue1999999"># 1999999</a>
+ #2000000
+ #2000000
+ # 2000000
+ # 2000000
+ #1234567890123
+ #1234567890123
+pyissue1000
+pyissue1000
+issue 1999999
+<a class="closed" title="[closed] Mock title" href="issue1999999">issue 1999999</a>
+bpo-555555
+<a class="open" title="[open] Mock title" href="issue555555">bpo-555555</a>
+http://mail.python.org/pipermail/python-ideas/2011-October/thread.html#12459
+<a href="http://mail.python.org/pipermail/python-ideas/2011-October/thread.html#12459">http://mail.python.org/pipermail/python-ideas/2011-October/thread.html#12459</a>
+##
+## files - Lib/somefile.py, Modules/somemodule.c, Doc/somedocfile.rst, ...
+Lib/cgi.py
+<a href="https://github.com/python/cpython/blob/master/Lib/cgi.py">Lib/cgi.py</a>
+/Lib/cgi.py
+/Lib/cgi.py
+see Lib/cgi.py.
+see <a href="https://github.com/python/cpython/blob/master/Lib/cgi.py">Lib/cgi.py</a>.
+see /Lib/cgi.py.
+see /Lib/cgi.py.
+(Lib/cgi.py)
+(<a href="https://github.com/python/cpython/blob/master/Lib/cgi.py">Lib/cgi.py</a>)
+##
+## files with line number - Lib/somefile.py:123, Modules/somemodule.c:123, ...
+see Lib/cgi.py:123,
+see <a href="https://github.com/python/cpython/blob/master/Lib/cgi.py#L123">Lib/cgi.py:123</a>,
+see Lib/cgi.py: foo
+see <a href="https://github.com/python/cpython/blob/master/Lib/cgi.py">Lib/cgi.py</a>: foo
+see Lib/cgi.py: 123
+see <a href="https://github.com/python/cpython/blob/master/Lib/cgi.py">Lib/cgi.py</a>: 123
+see 3.7/Lib/cgi.py:123,
+see <a href="https://github.com/python/cpython/blob/3.7/Lib/cgi.py#L123">Lib/cgi.py:123</a>,
+see 3.6/Lib/cgi.py: foo
+see <a href="https://github.com/python/cpython/blob/3.6/Lib/cgi.py">Lib/cgi.py</a>: foo
+see 2.7/Lib/cgi.py: 123
+see <a href="https://github.com/python/cpython/blob/2.7/Lib/cgi.py">Lib/cgi.py</a>: 123
+2.6/Lib/http/:123
+<a href="https://github.com/python/cpython/blob/2.6/Lib/http/">Lib/http/</a>:123
+see /3.7/Lib/cgi.py:123,
+see /3.7/Lib/cgi.py:123,
+see 1.7/Lib/cgi.py,
+see 1.7/Lib/cgi.py,
+##
+## URLs
+http://svn.python.org/view/python/tags/r265
+<a href="http://svn.python.org/view/python/tags/r265">http://svn.python.org/view/python/tags/r265</a>
+http://svn.python.org/view/python/tags/r265/Lib/cgi.py
+<a href="http://svn.python.org/view/python/tags/r265/Lib/cgi.py">http://svn.python.org/view/python/tags/r265/Lib/cgi.py</a>
+http://svn.python.org/view/python/tags/r265/Lib/cgi.py?view=markup
+<a href="http://svn.python.org/view/python/tags/r265/Lib/cgi.py?view=markup">http://svn.python.org/view/python/tags/r265/Lib/cgi.py?view=markup</a>
+http://bugs.python.org/issue1000
+<a href="http://bugs.python.org/issue1000">http://bugs.python.org/issue1000</a>
+http://svn.python.org/view/python/branches/release26-maint/Lib/socket.py?r1=83624&r2=83623&pathrev=83624
+<a href="http://svn.python.org/view/python/branches/release26-maint/Lib/socket.py?r1=83624&amp;r2=83623&amp;pathrev=83624">http://svn.python.org/view/python/branches/release26-maint/Lib/socket.py?r1=83624&amp;r2=83623&amp;pathrev=83624</a>
+see http://www.python.org/dev/peps/pep-3127/#removal-of-old-octal-syntax
+see <a href="http://www.python.org/dev/peps/pep-3127/#removal-of-old-octal-syntax">http://www.python.org/dev/peps/pep-3127/#removal-of-old-octal-syntax</a>
+see http://docs.python.org/whatsnew/2.6.html#pep-371-the-multiprocessing-package
+see <a href="http://docs.python.org/whatsnew/2.6.html#pep-371-the-multiprocessing-package">http://docs.python.org/whatsnew/2.6.html#pep-371-the-multiprocessing-package</a>
+http://bugs.python.org/file24624/Proposed-fix-of-issue14099-second.patch
+<a href="http://bugs.python.org/file24624/Proposed-fix-of-issue14099-second.patch">http://bugs.python.org/file24624/Proposed-fix-of-issue14099-second.patch</a>
+http://www.microsoft.com/downloads/details.aspx?familyid=32BC1BEE-A3F9-4C13-9C99-220B62A191EE&displaylang=en
+<a href="http://www.microsoft.com/downloads/details.aspx?familyid=32BC1BEE-A3F9-4C13-9C99-220B62A191EE&amp;displaylang=en">http://www.microsoft.com/downloads/details.aspx?familyid=32BC1BEE-A3F9-4C13-9C99-220B62A191EE&amp;displaylang=en</a>
+http://hg.python.org/sandbox/morph-devguide/shortlog/a92d431ef749
+<a href="http://hg.python.org/sandbox/morph-devguide/shortlog/a92d431ef749">http://hg.python.org/sandbox/morph-devguide/shortlog/a92d431ef749</a>
+http://bazaar.launchpad.net/~ipython-dev/ipython/trunk/annotate/head%3A/IPython/testing/_paramtestpy3.py
+<a href="http://bazaar.launchpad.net/~ipython-dev/ipython/trunk/annotate/head%3A/IPython/testing/_paramtestpy3.py">http://bazaar.launchpad.net/~ipython-dev/ipython/trunk/annotate/head%3A/IPython/testing/_paramtestpy3.py</a>
+https://hg.python.org/cpython/rev/769355e031:d0302d8ecbc1
+<a href="https://hg.python.org/cpython/rev/769355e031:d0302d8ecbc1">https://hg.python.org/cpython/rev/769355e031:d0302d8ecbc1</a>
+##
+## tracebacks
+File "/usr/lib/python2.7/socket.py", line 553, in create_connection
+File "/usr/lib/python2.7/<a href="https://github.com/python/cpython/blob/2.7/Lib/socket.py#L553">socket.py</a>", line 553, in create_connection
+File "D:\cygwin\home\user\buildarea\3.x-windows\build\lib\test\test_logging.py", line 3599, in test_rollover
+File "D:\cygwin\home\user\buildarea\3.x-windows\build\lib\<a href="https://github.com/python/cpython/blob/master/Lib/test/test_logging.py#L3599">test\test_logging.py</a>", line 3599, in test_rollover
+File "/home2/buildbot/slave/3.x-sun/build/Lib/ssl.py", line 60, in <module>
+File "/home2/buildbot/slave/3.x-sun/build/Lib/<a href="https://github.com/python/cpython/blob/master/Lib/ssl.py#L60">ssl.py</a>", line 60, in &lt;module&gt;
+File "/export/home/buildbot/32bits/3.x-indiana-x86/build/Lib/sysconfig.py", line 436, in get_path
+File "/export/home/buildbot/32bits/3.x-indiana-x86/build/Lib/<a href="https://github.com/python/cpython/blob/master/Lib/sysconfig.py#L436">sysconfig.py</a>", line 436, in get_path
+File "/Users/user/src/python-svn/Lib/test/test_codecs.py", line 531, in
+File "/Users/user/src/python-svn/Lib/<a href="https://github.com/python/cpython/blob/master/Lib/test/test_codecs.py#L531">test/test_codecs.py</a>", line 531, in
+File "/home/user/code/src/cpython/python/Lib/shutil.py", line 98, in copyfile
+File "/home/user/code/src/cpython/python/Lib/<a href="https://github.com/python/cpython/blob/master/Lib/shutil.py#L98">shutil.py</a>", line 98, in copyfile
+File "/srv/buildbot/buildarea/3.1-ubuntu/build/Lib/distutils/spawn.py", line 138, in _spawn_posix
+File "/srv/buildbot/buildarea/3.1-ubuntu/build/Lib/<a href="https://github.com/python/cpython/blob/3.1/Lib/distutils/spawn.py#L138">distutils/spawn.py</a>", line 138, in _spawn_posix
+File "D:\Buildslave\3.x-windows\build\lib\test\test_urllib2_localnet.py", line 364, in urlopen
+File "D:\Buildslave\3.x-windows\build\lib\<a href="https://github.com/python/cpython/blob/master/Lib/test/test_urllib2_localnet.py#L364">test\test_urllib2_localnet.py</a>", line 364, in urlopen
+File "D:\Buildslave\3.x-windows\build\lib\urllib\request.py", line 1116, in do_open
+File "D:\Buildslave\3.x-windows\build\lib\<a href="https://github.com/python/cpython/blob/master/Lib/urllib/request.py#L1116">urllib\request.py</a>", line 1116, in do_open
+File "/var/lib/buildslave/3.x-gentoo/build/Lib/socketserver.py", line 713, in finish
+File "/var/lib/buildslave/3.x-gentoo/build/Lib/<a href="https://github.com/python/cpython/blob/master/Lib/socketserver.py#L713">socketserver.py</a>", line 713, in finish
+File "/home/user/cpython/Lib/test/support.py", line 217, in make_legacy_pyc
+File "/home/user/cpython/Lib/<a href="https://github.com/python/cpython/blob/master/Lib/test/support.py#L217">test/support.py</a>", line 217, in make_legacy_pyc
+File "/home/buildbot/buildarea/3.x-fedora/build/Lib/importlib/_bootstrap.py", line 342, in _load_module
+File "/home/buildbot/buildarea/3.x-fedora/build/Lib/<a href="https://github.com/python/cpython/blob/master/Lib/importlib/_bootstrap.py#L342">importlib/_bootstrap.py</a>", line 342, in _load_module
+File "/Users/buildbot/buildarea/custom-tiger-1/build/Lib/subprocess.py", line 1531, in wait
+File "/Users/buildbot/buildarea/custom-tiger-1/build/Lib/<a href="https://github.com/python/cpython/blob/master/Lib/subprocess.py#L1531">subprocess.py</a>", line 1531, in wait
+File "/sw/lib/python3.1/subprocess.py", line 719, in communicate
+File "/sw/lib/python3.1/<a href="https://github.com/python/cpython/blob/3.1/Lib/subprocess.py#L719">subprocess.py</a>", line 719, in communicate
+File "c:\Python26\lib\traceback.py", line 57, in print_tb
+File "c:\Python26\lib\<a href="https://github.com/python/cpython/blob/2.6/Lib/traceback.py#L57">traceback.py</a>", line 57, in print_tb
+File "C:\Programme\Python26\lib\logging\handlers.py", line 76, in emit
+File "C:\Programme\Python26\lib\<a href="https://github.com/python/cpython/blob/2.6/Lib/logging/handlers.py#L76">logging\handlers.py</a>", line 76, in emit
+File "C:\www\Python27\lib\subprocess.py", line 486, in call return Popen
+File "C:\www\Python27\lib\<a href="https://github.com/python/cpython/blob/2.7/Lib/subprocess.py#L486">subprocess.py</a>", line 486, in call return Popen
+File "C:\www\Python2.7\lib\subprocess.py", line 486, in call return Popen
+File "C:\www\Python2.7\lib\<a href="https://github.com/python/cpython/blob/2.7/Lib/subprocess.py#L486">subprocess.py</a>", line 486, in call return Popen
+##
+## tracebacks - these lines are not linkified because they are not files in Lib/*:
+File "C:\Python31\lib\site-packages\unittest2\main.py", line 237, in main_
+File "C:\Python31\lib\site-packages\unittest2\main.py", line 237, in main_
+File "C:\Users\user\Downloads\a\test_import_symlink_package.py", line 66, in <module>
+File "C:\Users\user\Downloads\a\test_import_symlink_package.py", line 66, in &lt;module&gt;
+File "/usr/lib/python2.5/site-packages/mp-2.6.2.1-py2.5-cygwin-1.7.1-i686.egg/multiprocessing/queues.py", line 91, in get_path
+File "/usr/lib/python2.5/site-packages/mp-2.6.2.1-py2.5-cygwin-1.7.1-i686.egg/multiprocessing/queues.py", line 91, in get_path
+File " x.py", line 12, in <module>
+File " x.py", line 12, in &lt;module&gt;
+File "build/build.py", line 173, in runCmd subprocess.call(cmd)
+File "build/build.py", line 173, in runCmd subprocess.call(cmd)
+##
+## emails
+fixed@europython.eu
+<a href="mailto:fixed@europython.eu">fixed@europython.eu</a>
+<fixed@europython.eu>
+&lt;<a href="mailto:fixed@europython.eu">fixed@europython.eu</a>&gt;
+##
+## items
+see msg1000.
+see <a href="msg1000">msg1000</a>.
+see msg 1000.
+see <a href="msg1000">msg 1000</a>.
+see file1000.
+see <a href="file1000">file1000</a>.
+see file 1000.
+see <a href="file1000">file 1000</a>.
+##
+## only msgs and files are linkified
+see version1000.
+see version1000.
+see version 1000.
+see version 1000.
+##
+##
+see PEP 8
+see <a href="https://www.python.org/dev/peps/pep-0008/">PEP 8</a>
+see PEP8
+see <a href="https://www.python.org/dev/peps/pep-0008/">PEP8</a>
+see pep 8
+see <a href="https://www.python.org/dev/peps/pep-0008/">pep 8</a>
+see PEP 008
+see <a href="https://www.python.org/dev/peps/pep-0008/">PEP 008</a>
+see PEP 3000
+see <a href="https://www.python.org/dev/peps/pep-3000/">PEP 3000</a>
+see PEP 15000
+see PEP 15000
+write a PEP!
+write a PEP!
+http://wiki.python.org/moin/SummerOfCode/2011/PEP393
+<a href="http://wiki.python.org/moin/SummerOfCode/2011/PEP393">http://wiki.python.org/moin/SummerOfCode/2011/PEP393</a>
+see https://bitbucket.org/rndblnch/cpython-pep380/raw/tip/pep380
+see <a href="https://bitbucket.org/rndblnch/cpython-pep380/raw/tip/pep380">https://bitbucket.org/rndblnch/cpython-pep380/raw/tip/pep380</a>
+see https://bitbucket.org/rndblnch/cpython-pep380/qseries?apply=t&qs_apply=pep380
+see <a href="https://bitbucket.org/rndblnch/cpython-pep380/qseries?apply=t&amp;qs_apply=pep380">https://bitbucket.org/rndblnch/cpython-pep380/qseries?apply=t&amp;qs_apply=pep380</a>
+see https://bitbucket.org/rndblnch/cpython-pep380/wiki
+see <a href="https://bitbucket.org/rndblnch/cpython-pep380/wiki">https://bitbucket.org/rndblnch/cpython-pep380/wiki</a>
+see http://www.python.org/dev/peps/pep-0008/
+see <a href="http://www.python.org/dev/peps/pep-0008/">http://www.python.org/dev/peps/pep-0008/</a>
+##
+##
+see the devguide.
+see the <a href="https://devguide.python.org">devguide</a>.
+see http://docs.python.org/devguide/.
+see <a href="http://docs.python.org/devguide/">http://docs.python.org/devguide/</a>.
+see http://devguide.python.org/.
+see <a href="http://devguide.python.org/">http://devguide.python.org/</a>.
+see devguide/triaging.
+see <a href="https://devguide.python.org/triaging">devguide/triaging</a>.
+see devguide/triaging.html.
+see <a href="https://devguide.python.org/triaging.html">devguide/triaging.html</a>.
+see http://docs.python.org/devguide/committing.html#using-several-working-copies
+see <a href="http://docs.python.org/devguide/committing.html#using-several-working-copies">http://docs.python.org/devguide/committing.html#using-several-working-copies</a>
+see http://devguide.python.org/committing.html#using-several-working-copies
+see <a href="http://devguide.python.org/committing.html#using-several-working-copies">http://devguide.python.org/committing.html#using-several-working-copies</a>
+see devguide/committing.html#using-several-working-copies
+see <a href="https://devguide.python.org/committing.html#using-several-working-copies">devguide/committing.html#using-several-working-copies</a>
+see devguide/committing#using-several-working-copies
+see <a href="https://devguide.python.org/committing#using-several-working-copies">devguide/committing#using-several-working-copies</a>
+##
+## pull requests
+PR1
+<a href="https://github.com/python/cpython/pull/1" class="closed" title="GitHub PR 1: [closed] Mock title">PR1</a>
+GH1
+<a href="https://github.com/python/cpython/pull/1" class="closed" title="GitHub PR 1: [closed] Mock title">GH1</a>
+PR 2
+<a href="https://github.com/python/cpython/pull/2" class="closed" title="GitHub PR 2: [merged] Mock title">PR 2</a>
+GH 2
+<a href="https://github.com/python/cpython/pull/2" class="closed" title="GitHub PR 2: [merged] Mock title">GH 2</a>
+ PR3
+ <a href="https://github.com/python/cpython/pull/3" class="open" title="GitHub PR 3: [open] Mock title">PR3</a>
+ PR 4
+ <a href="https://github.com/python/cpython/pull/4" class="closed" title="GitHub PR 4: [closed] Mock title">PR 4</a>
+pull request 5
+<a href="https://github.com/python/cpython/pull/5" class="closed" title="GitHub PR 5: [merged] Mock title">pull request 5</a>
+ pull request 6
+ <a href="https://github.com/python/cpython/pull/6" class="open" title="GitHub PR 6: [open] Mock title">pull request 6</a>
+PR-1
+<a href="https://github.com/python/cpython/pull/1" class="closed" title="GitHub PR 1: [closed] Mock title">PR-1</a>
+GH-1
+<a href="https://github.com/python/cpython/pull/1" class="closed" title="GitHub PR 1: [closed] Mock title">GH-1</a>
+PR1000
+<a href="https://github.com/python/cpython/pull/1000" title="GitHub PR 1000">PR1000</a>
+GH1000
+<a href="https://github.com/python/cpython/pull/1000" title="GitHub PR 1000">GH1000</a>
+PR 2000
+<a href="https://github.com/python/cpython/pull/2000" title="GitHub PR 2000">PR 2000</a>
+pull request 5555
+<a href="https://github.com/python/cpython/pull/5555" title="GitHub PR 5555">pull request 5555</a>
+check my pullrequest 1 on github
+check my <a href="https://github.com/python/cpython/pull/1" class="closed" title="GitHub PR 1: [closed] Mock title">pullrequest 1</a> on github
+check my pull request 1 on github
+check my <a href="https://github.com/python/cpython/pull/1" class="closed" title="GitHub PR 1: [closed] Mock title">pull request 1</a> on github
+check my PR 1 on github
+check my <a href="https://github.com/python/cpython/pull/1" class="closed" title="GitHub PR 1: [closed] Mock title">PR 1</a> on github
+check my PR1 on github
+check my <a href="https://github.com/python/cpython/pull/1" class="closed" title="GitHub PR 1: [closed] Mock title">PR1</a> on github
+check my PullRequest 123 on github
+check my <a href="https://github.com/python/cpython/pull/123" class="open" title="GitHub PR 123: [open] Mock title">PullRequest 123</a> on github
+check my PULL request 123 on github
+check my <a href="https://github.com/python/cpython/pull/123" class="open" title="GitHub PR 123: [open] Mock title">PULL request 123</a> on github
+check my pR 123 on github
+check my <a href="https://github.com/python/cpython/pull/123" class="open" title="GitHub PR 123: [open] Mock title">pR 123</a> on github
+check my Pr123 on github
+check my <a href="https://github.com/python/cpython/pull/123" class="open" title="GitHub PR 123: [open] Mock title">Pr123</a> on github
+check my PR without number
+check my PR without number
+prompt 3 and Apr 7 shouldn't be linkified
+prompt 3 and Apr 7 shouldn't be linkified

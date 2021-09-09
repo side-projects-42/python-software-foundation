@@ -1,0 +1,187 @@
+#!/usr/bin/env python3
+
+# generate-nitrohsm-keys: Given a NitroHSM provisioned by
+# `nitrohsm-provision`, generate the appropriate TUF keypairs.
+
+import argparse
+import getpass
+import logging
+from pathlib import Path
+import platform
+import shutil
+import subprocess
+import sys
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("generate-nitrohsm-keys")
+
+_CEREMONY_PRODUCTS_DIR = Path("ceremony-products").resolve()
+
+_ALGORITHM_MAP = {"p256": "EC:prime256v1", "p384": "EC:prime384v1"}
+
+_OPENSSL = shutil.which("openssl")
+
+_PKCS11_TOOL = shutil.which("pkcs11-tool")
+
+_PKCS11_MODULE_MAP = {
+    ("Darwin", "x86_64"): Path("/usr/local/lib/opensc-pkcs11.so"),
+    ("Linux", "armv7l"): Path("/usr/lib/arm-linux-gnueabihf/opensc-pkcs11.so"),
+}
+
+_TUF_KEY_CONFIG = {
+    "root": {
+        "raw_pubkey_file_suffix": "root_pubkey.pub",
+        "pem_pubkey_file_suffix": "root_pubkey.pem",
+    },
+    "targets": {
+        "raw_pubkey_file_suffix": "targets_pubkey.pub",
+        "pem_pubkey_file_suffix": "targets_pubkey.pem",
+    },
+}
+
+# NOTE: This is contrived. It's high enough to be above any default object IDs
+# that might be baked into the Nitrokey HSM.
+_TUF_BASE_KEY_ID = 12
+
+
+def die(msg):
+    print(f"Fatal: {msg}", file=sys.stderr)
+    sys.exit(1)
+
+
+def _get_pkcs11_module():
+    sys_tuple = (platform.system(), platform.machine())
+    pkcs11_module = _PKCS11_MODULE_MAP.get(sys_tuple)
+    if pkcs11_module is None:
+        die(f"This script does not support your (system, machine) tuple: {sys_tuple}")
+
+    if not pkcs11_module.is_file():
+        die(f"Missing PKCS#11 module at {pkcs11_module}")
+
+    logger.debug(f"Found PKCS#11 module: {pkcs11_module}")
+
+    return str(pkcs11_module)
+
+
+def generate_key(type_: str, label: str, key_id: int, pin: str):
+    status = subprocess.run(
+        [
+            _PKCS11_TOOL,
+            "--module",
+            _get_pkcs11_module(),
+            "--login",
+            "--pin",
+            pin,
+            "--keypairgen",
+            "--key-type",
+            type_,
+            "--id",
+            str(key_id),
+            "--label",
+            label,
+        ]
+    )
+
+    if status.returncode != 0:
+        die(
+            f"pkcs11-tool exited with {status.returncode}; manual intervention required"
+        )
+
+
+def extract_pubkey(key_id: int, pubkey_path: Path):
+    status = subprocess.run(
+        [
+            _PKCS11_TOOL,
+            "--module",
+            _get_pkcs11_module(),
+            "--read-object",
+            "--type",
+            "pubkey",
+            "--id",
+            str(key_id),
+            "-o",
+            str(pubkey_path),
+        ]
+    )
+
+    if status.returncode != 0:
+        die(
+            f"pkcs11-tool exited with {status.returncode}; manual intervention required"
+        )
+
+
+def convert_pubkey(raw_pubkey_path: Path, pem_pubkey_path: Path):
+    status = subprocess.run(
+        [
+            _OPENSSL,
+            "ec",
+            "-inform",
+            "DER",
+            "-pubin",
+            "-in",
+            str(raw_pubkey_path),
+            "-out",
+            str(pem_pubkey_path),
+        ]
+    )
+
+    if status.returncode != 0:
+        die(f"openssl exited with {status.returncode}; manual intervention required")
+
+
+def main():
+    if _OPENSSL is None:
+        die("Could not find openssl on the PATH")
+
+    if _PKCS11_TOOL is None:
+        die("Could not find pkcs11-tool on the PATH")
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-t", "--type", type=str, required=True, choices=_ALGORITHM_MAP.keys()
+    )
+    parser.add_argument("-s", "--serial", type=str, required=True)
+    parser.add_argument(
+        "-d", "--debug", action="store_true", help="Print debugging messages"
+    )
+
+    args = parser.parse_args()
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
+
+    user_pin = getpass.getpass(prompt="Enter your user PIN: ")
+
+    output_dir = _CEREMONY_PRODUCTS_DIR / args.serial
+    if not output_dir.is_dir():
+        logger.debug(f"{output_dir} does not exist, creating it")
+        output_dir.mkdir(parents=True)
+
+    for (idx, (label, config)) in enumerate(_TUF_KEY_CONFIG.items()):
+        logger.info(f"Performing {label} key generation")
+        key_id = _TUF_BASE_KEY_ID + idx
+
+        raw_pubkey_path = (
+            output_dir / f"{args.serial}_{config['raw_pubkey_file_suffix']}"
+        )
+        if raw_pubkey_path.exists():
+            die(
+                f"Not overwriting extant public key: {raw_pubkey_path}; "
+                "manual intervention required"
+            )
+
+        pem_pubkey_path = (
+            output_dir / f"{args.serial}_{config['pem_pubkey_file_suffix']}"
+        )
+        if pem_pubkey_path.exists():
+            die(
+                f"Not overwriting extant PEM-formatted pubkey: {pem_pubkey_path}; "
+                "manual intervention required"
+            )
+
+        generate_key(_ALGORITHM_MAP[args.type], label, key_id, user_pin)
+        extract_pubkey(key_id, raw_pubkey_path)
+        convert_pubkey(raw_pubkey_path, pem_pubkey_path)
+
+
+if __name__ == "__main__":
+    main()

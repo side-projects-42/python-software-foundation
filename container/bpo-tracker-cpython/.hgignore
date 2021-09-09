@@ -1,0 +1,7 @@
+syntax: glob
+config.ini
+db/files
+db/text-index
+**.pyc
+**~
+*.swp

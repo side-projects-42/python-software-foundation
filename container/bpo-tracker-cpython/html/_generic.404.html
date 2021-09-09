@@ -1,0 +1,13 @@
+<tal:block metal:use-macro="templates/page/macros/icing">
+  <title metal:fill-slot="head_title">
+  Item Not Found
+  </title>
+  <tal:block metal:fill-slot="body_title">
+  Item Not Found
+  </tal:block>
+
+<td class="content" metal:fill-slot="content">
+    There is no <span tal:content="context/_classname" /> with id
+    <span tal:content="context/id"/>
+</td>
+</tal:block>

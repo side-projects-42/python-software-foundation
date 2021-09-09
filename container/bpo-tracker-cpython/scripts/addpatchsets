@@ -1,0 +1,179 @@
+#!/usr/bin/python
+import sys, os, urllib2, logging, datetime
+basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(basedir+"/rietveld")
+os.environ["DJANGO_SETTINGS_MODULE"]="settings"
+import gae2django
+gae2django.install(server_software='Django')
+
+verbose = False
+if len(sys.argv)>=2 and sys.argv[1]=='-v':
+    verbose=True
+    del sys.argv[1]
+else:
+    logging.disable(logging.ERROR)
+
+from codereview.models import (Repository, Branch, Patch, 
+                               PatchSet, Issue, Content)
+from django.contrib.auth.models import User
+from codereview import patching, utils
+from roundup_helper.models import File, RoundupIssue
+from django.db import connection, transaction
+from google.appengine.ext import db as gae_db
+
+transaction.enter_transaction_management()
+transaction.managed()
+python = Repository.gql("WHERE name = 'Python'").get()
+
+_branches={}
+def get_branch(branchname):
+    try:
+        return _branches[branchname]
+    except KeyError:
+        branch = Branch.gql("WHERE url = '%s%s/'" % (python.url, branchname[1:])).get()
+        _branches[branchname] = branch
+        return branch
+
+def try_match(filename, chunks, rev):
+    try:
+        r = urllib2.urlopen("http://hg.python.org/cpython/raw-file/"+rev+"/"+filename)
+    except urllib2.HTTPError:
+        # not found/not accessible
+        # assume that the file did not exist in the base revision
+        # and consider it empty. If the problem was different (i.e. there should have
+        # been a non-empty base, patching will fail.
+        base = ""
+    else:
+        base = utils.unify_linebreaks(r.read())
+    lines = base.splitlines(True)
+    for (start, end), newrange, oldlines, newlines in chunks:
+        if lines[start:end] != oldlines:
+            if verbose:
+                print "No match", filename, start, end
+            return None
+    return base
+
+def hg_splitpatch(data):
+    patches = []
+    filename = None
+    for line in data.splitlines(True):
+        if line.startswith('diff '):
+            if filename:
+                chunks = patching.ParsePatchToChunks(diff)
+                if chunks:
+                    patches.append((filename, ''.join(diff), chunks))
+            diff = []
+            filename = line.split()[-1]
+            if filename.startswith("b/"):
+                # git style
+                filename = filename[2:]
+            continue
+        if filename:
+            diff.append(line)
+    # add last patch
+    if filename:
+        chunks = patching.ParsePatchToChunks(diff)
+        if chunks:
+            patches.append((filename, ''.join(diff), chunks))
+    return patches
+
+def find_bases(data):
+    if not data.startswith("diff "):
+        # this should only be called if there is actually is a diff in the file
+        head, tail = data.split("\ndiff ", 1)
+        data = "diff "+tail
+    # default to default branch if no revision is found
+    rev = 'default'
+    if data.startswith("diff -r "):
+        first, second, rev = data.split()[:3]
+    c = connection.cursor()
+    pieces = hg_splitpatch(data)
+    if not pieces:
+        if verbose:
+            print "Splitting failed"
+        return None, None
+    bases = []
+    for filename, data, chunks in pieces:
+        res = try_match(filename, chunks, rev)
+        if res is None:
+            return None, None
+        bases.append((filename, data, chunks, res))
+    if verbose:
+        print "Found match", rev
+    return 'default', bases
+
+c = connection.cursor()
+c.execute("select id from _status where _name='closed'")
+closed = c.fetchone()[0]
+
+if len(sys.argv) == 2:
+    query = File.objects.filter(id = sys.argv[1])
+else:
+    query = (File.objects.filter(_patchset__isnull=True,
+                                 _creation__gt=datetime.datetime.utcnow()-datetime.timedelta(seconds=30*60)).
+          order_by('id'))
+for f in query:
+    c.execute("select nodeid from issue_files where linkid=%s", (f.id,))
+    nodeid = c.fetchone()
+    if not nodeid:
+        if verbose:
+            print "File",f.id,"is detached"
+        continue
+    nodeid = nodeid[0]
+    roundup = RoundupIssue.objects.get(id=nodeid)
+    #if roundup._status == closed:
+    #    if verbose:
+    #        print "issue",nodeid,"is closed"
+    #    continue
+    filename = os.path.join(basedir, "db", "files", "file",
+                            str(f.id/1000), "file"+str(f.id))
+    if not os.path.exists(filename):
+        print filename,"not found"
+        continue
+    data = open(filename).read()
+    if not data.startswith('diff ') and data.find('\ndiff ')==-1:
+        if verbose:
+            print filename, "is not a patch"
+        continue
+    issue = Issue.objects.filter(id=nodeid)
+    if not issue:
+        c.execute("select _address from _user,issue_nosy where nodeid=%s and id=linkid",
+                  (nodeid,))
+        cc = [r[0] for r in c.fetchall()]
+        c.execute("select _title, _creator from _issue where id=%s", (nodeid,))
+        title, creator = c.fetchone()
+        issue = Issue(id=nodeid, subject=title, owner_id=creator, cc=cc)
+        issue.put()
+    else:
+        issue = issue[0]
+    if verbose:
+        print "Doing", f.id
+    data = utils.unify_linebreaks(data)
+    branch, bases = find_bases(data)
+    if not branch:
+        if f.id < 15000:
+            f._patchset = "n/a"
+            f.save()
+            transaction.commit()
+        continue
+
+    blob = gae_db.Blob(data)
+    patchset = PatchSet(issue=issue, data=blob, parent=issue,
+                        created=f._creation, modified=f._creation)
+    patchset.put()
+    issue.patchset=patchset
+    issue.put()
+    f._branch = branch
+    f._patchset = str(patchset.id)
+    f.save()
+    for filename, data, chunks, base in bases:
+        patch = Patch(patchset=patchset, text=utils.to_dbtext(data),
+                      filename=filename, parent=patchset)
+        patch.put()
+        content = Content(text=utils.to_dbtext(base), parent=patch)
+        content.put()
+        patch.content = content
+        patch.put()
+    transaction.commit()
+transaction.commit()
+transaction.leave_transaction_management()

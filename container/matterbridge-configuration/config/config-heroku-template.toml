@@ -1,0 +1,27 @@
+[irc]
+  [irc.libera]
+  Server="irc.libera.chat:6697"
+  Nick="psf-matterbot"
+  NickServNick="psf-matterbot"
+  NickServPassword="${MATTERBRIDGE_IRC_LIBERA_NICKSERVPASSWORD}"
+  UseTLS=true
+  UseSASL=true
+  SkipTLSVerify=false
+  RemoteNickFormat="[{PROTOCOL}] <{NICK}> "
+
+[slack]
+  [slack.psf]
+  Token="${MATTERBRIDGE_SLACK_PSF_TOKEN}"
+  IconURL="https://robohash.org/{NICK}.png?size=48x48&set=set4"
+  RemoteNickFormat="[{PROTOCOL}] <{NICK}> "
+
+[[gateway]]
+name="psfslackircgateway"
+enable=true
+  [[gateway.inout]]
+  account="irc.libera"
+  channel="#python-infra"
+  [[gateway.inout]]
+  account="slack.psf"
+  channel="infrastructure"
+  

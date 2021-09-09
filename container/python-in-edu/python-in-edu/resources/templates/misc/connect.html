@@ -1,0 +1,48 @@
+{% extends "resources/base.html" %}
+
+{% load static %}
+
+{% block page_title %}Connect With Us{% endblock page_title %}
+
+{% block content %}
+
+<h3 id="python-page-header" class="py-2">Connect With Us</h3>
+
+    <div class="container">
+
+        <div class="row py-4">
+            <div class="col-sm-6">
+
+                    <div class="row"><div class="col-sm-12 offset-sm-3 mb-2">
+                            <img src="{% static 'images/community.png' %}"></img>
+                    </div></div>
+
+                    <div class="row"><div class="col-sm-12 mb-2">
+                        {% include 'text_includes/connect_text.html' %}
+                    </div></div>
+
+                    <div class="row"><div class="col-sm-12 mb-2">
+                            <img src="{% static 'images/snake_learn.png' %}"></img>
+                            <img src="{% static 'images/snake_build.png' %}"></img>
+                    </div></div>
+
+                    <div class="row"><div class="col-sm-12 mb-2">
+                            {% include 'text_includes/contribute_text.html' %}
+                    </div></div>
+
+            </div>
+            <div class="col-sm-1"></div>
+            <div class="col-sm-5 pt-3">
+
+                <!-- Twitter timeline embed -->
+                <a class="twitter-timeline" href="https://twitter.com/teach_python/lists/python-in-education-11760?ref_src=twsrc%5Etfw">
+                    A Twitter List by teach_python</a>
+                <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+            </div>
+        </div>
+
+
+
+
+{% endblock content %}
